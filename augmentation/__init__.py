@@ -1,0 +1,10 @@
+from augmentation.base_augmentation import BaseAugmentation
+
+from augmentation.speed_change_augmentation import RandomSpeedChangeAugmentation
+from augmentation.white_noise_augmenation import RandomWhiteNoiseAugmentation
+from augmentation.rir_augmentation import RIRAugmentation
+
+from augmentation.time_masking_spec_augmentation import TimeMaskingSpecAugmentation
+from augmentation.freq_masking_spec_augmentation import FreqMaskingSpecAugmentation
+
+from augmentation.compose_augmentations import ComposeAugmentations

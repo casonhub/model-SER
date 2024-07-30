@@ -1,0 +1,9 @@
+*.pyc
+datasets/TEST_DATASET
+checkpoints/*
+*.pt
+wandb
+lightning_logs
+evaluation
+trained_models
+datasets/*
