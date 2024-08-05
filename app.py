@@ -11,7 +11,7 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],  # Adjust as needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,6 +27,7 @@ emotion_labels = ["calm", "neutral", "happy", "sad", "angry", "fearful", "disgus
 @app.post("/predict")
 async def predict(file: UploadFile = File(None)):
     try:
+        # Handle file upload
         if file is None or file.filename == '':
             raise HTTPException(status_code=400, detail="No file provided or file is empty")
 
@@ -38,6 +39,7 @@ async def predict(file: UploadFile = File(None)):
 
         print(f"File saved: {file_path}")
 
+        # Preprocess the audio file
         input_tensor = preprocess_audio(file_path)
         print(f"Input tensor shape after preprocessing: {input_tensor.shape}")
 
@@ -47,28 +49,26 @@ async def predict(file: UploadFile = File(None)):
 
         print(f"Final input tensor shape: {input_tensor.shape}")
 
-        # Check if the model has an expected input shape attribute
-        if hasattr(model, 'expected_input_shape'):
-            expected_shape = model.expected_input_shape
-            print(f"Model's expected input shape: {expected_shape}")
-            # Reshape input tensor if necessary
-            input_tensor = input_tensor.view(expected_shape)
-            print(f"Reshaped input tensor: {input_tensor.shape}")
-
-        # Ensure model and input tensor are on the same device
+        # Move input tensor to the same device as the model
         device = next(model.parameters()).device
         input_tensor = input_tensor.to(device)
 
+        # Model prediction
         with torch.no_grad():
             prediction = model(input_tensor)
             print(f"Raw model output: {prediction}")
-            predicted_emotion = torch.argmax(prediction, dim=1).item()
 
-        print(f"Predicted emotion index: {predicted_emotion}")
-        predicted_emotion_label = emotion_labels[predicted_emotion]
-        print(f"Predicted emotion label: {predicted_emotion_label}")
+            # Assuming the prediction is a tensor with dimensions like [batch_size, num_classes]
+            # Get the max value across the class dimension to find the predicted class
+            max_values, predicted_classes = torch.max(prediction, dim=1)
 
-        return JSONResponse(content={'emotion': predicted_emotion_label})
+        # Convert tensor to list for JSON response
+        predicted_classes_list = predicted_classes.tolist()
+        predicted_emotion_labels = [emotion_labels[pred] for pred in predicted_classes_list]
+
+        print(f"Predicted emotion labels: {predicted_emotion_labels}")
+
+        return JSONResponse(content={'emotion': predicted_emotion_labels})
 
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
