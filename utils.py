@@ -15,16 +15,26 @@ import torchaudio
 from dataset import SpeechRecordingsSpectrogramDataset
 
 def load_model(checkpoint_path):
-    from lightning_model import LigthningAST 
-    model = LigthningAST.load_from_checkpoint(checkpoint_path)
-    model.eval()
-    #print(model);
-    return model
+    try:
+        from lightning_model import LigthningAST 
+        model = LigthningAST.load_from_checkpoint(checkpoint_path)
+        model.eval()
+        print(f"Model successfully loaded from {checkpoint_path}")
+        return model
+    except Exception as e:
+        print(f"Error loading model: {str(e)}")
+        raise
 
 def preprocess_audio(audio_path, sample_rate=16000, n_mels=64, n_frames=1024):
+    print(f"Processing audio file: {audio_path}")
     waveform, sr = torchaudio.load(audio_path)
+    print(f"Original sample rate: {sr}")
+    
     if sr != sample_rate:
         waveform = torchaudio.transforms.Resample(sr, sample_rate)(waveform)
+        print(f"Resampled to {sample_rate} Hz")
+    
+    print(f"Waveform shape: {waveform.shape}")
     
     mel_spectrogram = torchaudio.transforms.MelSpectrogram(
         sample_rate=sample_rate,
@@ -32,19 +42,23 @@ def preprocess_audio(audio_path, sample_rate=16000, n_mels=64, n_frames=1024):
         n_fft=2048,
         hop_length=int(sample_rate / n_frames)
     )(waveform)
-
-    # Ensure the mel spectrogram has the correct number of frames
+    
+    print(f"Mel spectrogram shape before adjustment: {mel_spectrogram.shape}")
+    
     if mel_spectrogram.size(-1) < n_frames:
-        # If the number of frames is less than expected, pad it
         pad_amount = n_frames - mel_spectrogram.size(-1)
         mel_spectrogram = torch.nn.functional.pad(mel_spectrogram, (0, pad_amount))
+        print(f"Padded mel spectrogram to {n_frames} frames")
     elif mel_spectrogram.size(-1) > n_frames:
-        # If the number of frames is more than expected, truncate it
         mel_spectrogram = mel_spectrogram[:, :, :n_frames]
-
-    # Add batch and channel dimensions and remove any extra dimensions
-    #mel_spectrogram = mel_spectrogram.unsqueeze(0)  # Shape: [1, 1, n_mels, n_frames]
-
+        print(f"Truncated mel spectrogram to {n_frames} frames")
+    
+    print(f"Final mel spectrogram shape: {mel_spectrogram.shape}")
+  
+    if len(mel_spectrogram.shape) == 2:
+        mel_spectrogram = mel_spectrogram.unsqueeze(0)
+ 
+    print(f"Final tensor shape: {mel_spectrogram.shape}")
     return mel_spectrogram
 
 
